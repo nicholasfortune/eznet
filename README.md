@@ -21,4 +21,4 @@ You **must**:
 - **No warranty** is provided.
 
 The GPL only applies when you distribute code.
-Please read the whole license for more details.
+Please read the [whole license for more details.](LICENSE)
