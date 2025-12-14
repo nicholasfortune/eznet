@@ -1,4 +1,4 @@
-For build instructions, see [BUILD.md](docs/BUILD.md).
+**For build instructions, see [BUILD.md](docs/BUILD.md).**
 
 # What is EzNet?
 EzNet is a **CPU-based neural network library** written entirely in C++, with the following key features:
