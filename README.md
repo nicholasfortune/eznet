@@ -16,10 +16,12 @@ To get a CLI, open the root directory in terminal, and then choose from the foll
 
 
 For a stable CLI build:
+
 `g++ src/eznet.cpp src/CLI.cpp -o bin/eznet.exe`
 
 
 For an optimized CLI build:
+
 `g++ src/eznet.cpp src/CLI.cpp -o bin/eznet.exe -O3 -march=native -mtune=native -flto -DNDEBUG`
 
 
@@ -28,17 +30,21 @@ You can compile EzNet into a static library and link it to your own project.
 
 
 1. Compile EzNet into an object file:
+2. 
 *stable*: `g++ path/to/your/project.cpp path/to/eznet.cpp`
 
 *optimized*: `g++ path/to/your/project.cpp path/to/eznet.cpp -o bin/eznet.exe -O3 -march=native -mtune=native -flto -DNDEBUG`
 
 
 3. Turn it into a static library:
+
 `ar rcs eznet.a eznet.o`
+
 You will now have the **EzNet** `.a` library file.
 
 
-5. Link it with your own project:
+6. Link it with your own project:
+
 *stable*: `g++ path/to/your/project.cpp path/to/eznet.a -o bin/eznet.exe`
 
 *optimized*: `g++ path/to/your/project.cpp path/to/eznet.a -o bin/eznet.exe -O3 -march=native -mtune=native -flto -DNDEBUG`
