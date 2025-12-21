@@ -18,23 +18,29 @@
 
 
 /*
-        **WEIGHTS.BIN ARCHITECTURE**
+        **BINARY ARCHITECTURE**
         note: "block = a chunk of bytes with an allocated size"
 
-        block #     block               type                                purpose
-        ---------------------------------------------------------------------------
-        0           version             uint32_t                            version # of the file
-        1           blocks              uint32_t                            counts the number of blocks (not including blocks 0-2)
-        2           block sizes         multiple uint32_t's                 shows the size of all the blocks from block 3 and on in bytes.
-        3           1 x weight layer    1 float 32 for each weight          holds the weights, there can be as many of these as needed
-        4           1 x bias layer      1 float 32 for each bias            holds the biases, there can be as many of these as needed
-        5           1 x weight layer    1 float 32 for each weight          holds the weights
-        6           1 x bias layer      1 float 32 for each bias            holds the biases
+        block #     block               type                        purpose
+        -------------------------------------------------------------------
+        --          version             uint32_t                    version # of the file
+        --          blocks              uint32_t                    counts the number of blocks (not including blocks 0-2)
+        --          block sizes         multiple uint32_t's         shows the size of all the blocks from block 3 and on in bytes.
+        --          config size         uint32_t                    shows the size of all the configuration data.
+        |             config data 1
+        |             config data 2
+        |             config data 3
+        |           ...
+        0           1 x bias layer      1 float 32 for each bias    holds the biases, there can be as many of these as needed
+        1           1 x weight layer    1 float 32 for each weight  holds the weights, there can be as many of these as needed
+        2           1 x bias layer      1 float 32 for each bias    holds the biases
+        3           1 x weight layer    1 float 32 for each weight  holds the weights
         ...
 
         
         keep weights on every odd block number, and biases on every even block number
 
+        for more info, refer to BINARY.txt in "/docs"
 */
 
 #include "../include/eznet.h"
@@ -118,31 +124,63 @@
         file.clear(); // Reset any flags
         return;
     }
+    NeuralNetwork::file_metadata read_metadata(std::fstream& file) {
+        if (!file.is_open()) {std::cerr << "read_metadata: failed to open provided file.\n";return {};}
+
+        file.seekg(0, std::ios::beg);
+
+        // Version
+        uint32_t version;
+        file.read(reinterpret_cast<char*>(&version), sizeof(version));
+        if (!file) {std::cerr << "read_metadata: error getting version metadata.\n";return NeuralNetwork::file_metadata{};}
+
+        // Blocks
+        uint32_t blocks;
+        file.read(reinterpret_cast<char*>(&blocks), sizeof(blocks));
+        if (!file) {std::cerr << "read_metadata: error getting blocks metadata.\n";return NeuralNetwork::file_metadata{};}
+
+        // Block sizes
+        std::vector<uint32_t> block_sizes(blocks);
+        file.read(reinterpret_cast<char*>(block_sizes.data()), blocks * sizeof(uint32_t));
+        if (!file) {std::cerr << "read_metadata: error getting block sizes metadata.\n";return NeuralNetwork::file_metadata{};}
+
+        // Config size
+        uint32_t config_size;
+        file.read(reinterpret_cast<char*>(&config_size), sizeof(config_size));
+        if (!file) {std::cerr << "read_metadata: error getting config size metadata.\n";return NeuralNetwork::file_metadata{};}
+
+        // Config data
+        std::vector<uint32_t> config_data(blocks);
+        file.read(reinterpret_cast<char*>(config_data.data()), config_size * sizeof(uint32_t));
+        if (!file) {std::cerr << "read_metadata: error getting config data metadata.\n";return NeuralNetwork::file_metadata{};}
+
+        return NeuralNetwork::file_metadata{version, blocks, block_sizes};
+    }
+    void write_config(char* location, std::fstream& file, uint32_t config_size, std::vector<uint32_t> config_data) {
+        if (!file.is_open()) {std::cerr << "write_config: failed to open provided file.\n";return;}
+
+        NeuralNetwork::file_metadata metadata = read_metadata(file);
+
+        insert_bytes(location, file, );
+
+        file.seekg(0, std::ios::beg);
+    }
     std::vector<float> read_block(char* location, uint32_t block) {
         // Open file
-        std::ifstream file(location, std::ios::binary);
+        std::fstream file(location, std::ios::in | std::ios::binary);
         if (!file.is_open()) {std::cerr << "read_block: failed to open \"" << location << "\".\n";return {};}
             
-        // Check metadata blocks
-            // "version"
-            uint32_t version;
-            file.read(reinterpret_cast<char*>(&version), sizeof(version));
-            if (!file) {std::cerr << "read_block: error reading block " << block << "\n";return {};}
-
-            // "blocks"
-            uint32_t blocks;
-            file.read(reinterpret_cast<char*>(&blocks), sizeof(blocks));
-            if (!file) {std::cerr << "read_block: error reading block " << block << "\n";return {};}
-            // "block sizes"
-            std::vector<uint32_t> block_sizes(blocks);
-            file.read(reinterpret_cast<char*>(block_sizes.data()), blocks * sizeof(uint32_t));
-            if (!file) {std::cerr << "read_block: error reading block " << block << "\n";return {};}
+        NeuralNetwork::file_metadata file_metadata = read_metadata(file);
+        uint32_t version = file_metadata.version;
+        uint32_t blocks = file_metadata.blocks;
+        std::vector<uint32_t> block_sizes = file_metadata.block_sizes;
+        uint32_t config_size = file_metadata.config_size;
 
         // Find the block the user wants
             if (block >= blocks) {std::cerr << "Block # requested is invalid.\n";return {};}
 
             // Sum the size of all blocks before the one the user wants
-            size_t sum = sizeof(uint32_t) * (2 + blocks); // Size of metadata
+            size_t sum = sizeof(uint32_t) * (3 + blocks + config_size); // Size of metadata
             for (size_t i = 0; i < block; i++) { sum += block_sizes[i]; }
 
             // Read the block
@@ -164,28 +202,14 @@
         std::fstream file(location, std::ios::in | std::ios::out | std::ios::binary);
         if (!file.is_open()) {std::cerr << "write_block: failed to open \"" << location << "\".\n";return;}
             
-        // Check metadata blocks
-
-            // "version"
-            uint32_t version;
-            file.read(reinterpret_cast<char*>(&version), sizeof(version));
-            if (!file) {std::cerr << "write_block: error reading block " << block << "\n";return;}
-
-            // "blocks"
-            uint32_t blocks;
-            file.read(reinterpret_cast<char*>(&blocks), sizeof(blocks));
-            if (!file) {std::cerr << "write_block: error reading block " << block << "\n";return;}
-
-            // "block sizes"
-            std::vector<uint32_t> block_sizes(blocks);
-            file.read(reinterpret_cast<char*>(block_sizes.data()), blocks * sizeof(uint32_t));
-            if (!file) {
-                std::cerr << "write_block: error reading block " << block << "\n";
-                return;
-            }
+        NeuralNetwork::file_metadata file_metadata = read_metadata(file);
+        uint32_t version = file_metadata.version;
+        uint32_t blocks = file_metadata.blocks;
+        std::vector<uint32_t> block_sizes = file_metadata.block_sizes;
+        uint32_t config_size = file_metadata.config_size;
 
         // Find the block the user wants
-            size_t sum = sizeof(uint32_t) * (2 + blocks); // Size of metadata
+            size_t sum = sizeof(uint32_t) * (3 + blocks + config_size); // Size of metadata
             for (size_t i = 0; i < block && i < blocks; i++)
                 sum += block_sizes[i];
 
@@ -198,10 +222,10 @@
                 file.seekp(sum, std::ios::beg);
                 file.write(reinterpret_cast<const char*>(values.data()), size);
 
-                // Append new "block sizes" entry
+                // Append new block sizes entry
                 insert_bytes(location, file, (2 + block) * sizeof(uint32_t), 0, reinterpret_cast<const char*>(&size), sizeof(uint32_t));
 
-                // Increment "blocks"
+                // Increment blocks"
                 blocks++;
                 file.seekp(4, std::ios::beg);
                 file.write(reinterpret_cast<const char*>(&blocks), sizeof(uint32_t));
@@ -233,12 +257,12 @@
 
         if (!file.is_open()) {std::cerr << "new_bin: failed to reopen \"" << location << "\"\n";return;}
 
-        // "version"
+        // vrsion
         uint32_t version = 1;
         file.write(reinterpret_cast<char*>(&version), sizeof(version));
         if (!file) {std::cerr << "new_bin: error writing version\n";return;}
 
-        // "blocks"
+        // Blocks
         uint32_t blocks = 0;
         file.write(reinterpret_cast<char*>(&blocks), sizeof(blocks));
         if (!file) {std::cerr << "new_bin: error writing blocks\n";return;}
@@ -273,11 +297,12 @@
 
             std::mt19937 gen(std::random_device{}());
             NeuralNetwork::network new_network;
+            new_network.config_data[0] = layers[0]; // Set input size
 
             std::vector<NeuralNetwork::layer> new_layers;
             
-            if (layers[0] == 0) {std::cerr << "create_network: layer 0 has zero neurons\n";return NeuralNetwork::network{};}
-            for (size_t i = 0; i < length - 1; i++) {
+            if (layers[1] == 0) {std::cerr << "create_network: layer 0 has zero neurons\n";return NeuralNetwork::network{};}
+            for (size_t i = 1; i < length - 1; i++) {
                 size_t i_plus_one = i + 1;
                 if (layers[i_plus_one] == 0) {std::cerr << "create_network: layer " << i_plus_one << " has zero neurons\n";return NeuralNetwork::network{};}
                 NeuralNetwork::layer hidden_layer;
@@ -324,6 +349,20 @@
                 if (neural_network.layers[i].weights.size() == 0) {std::cerr << "save_network: layer " << i << "'s # of biases is 0\n";return;}
                 write_block(location, block, neural_network.layers[i].biases);
                 block++;
+            }
+        }
+        network load_network(char* location) {
+            std::fstream file(location, std::ios::in | std::ios::binary);
+            NeuralNetwork::file_metadata file_metadata = read_metadata(file);
+            NeuralNetwork::network new_network;
+
+            size_t pointer = 0;
+            // Loop through layers
+            for (size_t layer = 0; layer < (file_metadata.blocks/2); layer++) {
+                new_network.layers[layer].biases = read_block(location, pointer);
+                pointer++;
+                new_network.layers[layer].weights = read_block(location, pointer);
+                pointer++;
             }
         }
         output forward_pass(NeuralNetwork::network neural_network, std::vector<float> inputs) {

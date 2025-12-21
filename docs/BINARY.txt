@@ -1,0 +1,26 @@
+**BINARY ARCHITECTURE**
+note: "block = a chunk of bytes with an allocated size"
+
+block #     block               type                            purpose
+-----------------------------------------------------------------------
+--          version             uint32_t                        version # of the file
+--          blocks              uint32_t                        counts the number of blocks (not including blocks 0-2)
+--          block sizes         multiple uint32_t's             shows the size of all the blocks from block 3 and on in bytes.
+--          config size         uint32_t                        shows the size of all the configuration data.
+|             config data 1
+|             config data 2
+|             config data 3
+|           ...
+0           1 x bias layer      1 float 32 for each bias        holds the biases, there can be as many of these as needed
+1           1 x weight layer    1 float 32 for each weight      holds the weights, there can be as many of these as needed
+2           1 x bias layer      1 float 32 for each bias        holds the biases
+3           1 x weight layer    1 float 32 for each weight      holds the weights
+...
+
+        
+keep weights on every odd block number, and biases on every even block number
+
+
+**CONFIG DATA FORMATS PER VERSION**
+    v1
+        1. input size - uint32_t

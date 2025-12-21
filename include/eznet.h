@@ -22,6 +22,13 @@
 #include <vector>
 
 namespace NeuralNetwork {
+    struct file_metadata {
+        uint32_t version;
+        uint32_t blocks;
+        std::vector<uint32_t> block_sizes;
+        uint32_t config_size;
+        std::vector<uint32_t> config_data;
+    };
     struct layer {
         std::vector<float> weights;
         std::vector<float> biases;
@@ -30,6 +37,7 @@ namespace NeuralNetwork {
     };
     struct network {
         std::vector<layer> layers;
+        std::vector<uint32_t> config_data;
     };
     struct output {
         std::vector<float> outputs;
@@ -44,7 +52,7 @@ namespace NeuralNetwork {
         std::vector<std::vector<float>> layers;
     };
 
-    //Creates an initialized, untrained neural network with the amount of layers being the amount of items in an array, and each item's value being the amount of neurons in that layer.
+    //Creates an initialized, untrained neural network with the amount of layers being the amount of items in an array, and each item's value being the amount of neurons in that layer and the first layer being excluded as the input size.
     NeuralNetwork::network create_network(std::vector<uint32_t> layers);
 
     // Deletes the old neural network .bin file, and saves the given neural network to the .bin file.
