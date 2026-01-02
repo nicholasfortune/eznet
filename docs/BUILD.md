@@ -8,12 +8,12 @@ To get a CLI, open the root directory in terminal, and then choose from the foll
 
 ### For a stable CLI build:
 
-`g++ src/eznet.cpp src/cli.cpp -o bin/eznet.exe`
+`g++ src/eznet.cpp src/cli.cpp tests/*.cpp -o bin/eznet.exe`
 
 
 ### For an optimized CLI build:
 
-`g++ src/eznet.cpp src/cli.cpp -o bin/eznet.exe -O3 -march=native -mtune=native -flto -DNDEBUG`
+`g++ src/eznet.cpp src/cli.cpp tests/*.cpp -o bin/eznet.exe -O3 -march=native -mtune=native -flto -DNDEBUG`
 
 
 # Building the CLI For Linux
@@ -22,12 +22,12 @@ To get a CLI, open the root directory in terminal, and then choose from the foll
 
 ### For a stable CLI build:
 
-`g++ src/eznet.cpp src/cli.cpp -o bin/eznet`
+`g++ src/eznet.cpp src/cli.cpp tests/*.cpp -o bin/eznet`
 
 
 ### For an optimized CLI build:
 
-`g++ src/eznet.cpp src/cli.cpp -o bin/eznet -O3 -march=native -mtune=native -flto -DNDEBUG`
+`g++ src/eznet.cpp src/cli.cpp tests/*.cpp -o bin/eznet -O3 -march=native -mtune=native -flto -DNDEBUG`
 
 
 # Using EzNet as a library
@@ -57,3 +57,4 @@ You will now have the **EzNet** `.a` library file.
 *stable*: `g++ path/to/your/project.cpp path/to/eznet.a -o path/to/your/project`
 
 *optimized*: `g++ path/to/your/project.cpp path/to/eznet.a -o path/to/your/project -O3 -march=native -mtune=native -flto -DNDEBUG`
+
